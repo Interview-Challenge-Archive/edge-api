@@ -5,9 +5,12 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint src/"
   },
   "devDependencies": {
+    "eslint": "^9.39.4",
+    "globals": "^17.4.0",
     "vitest": "^4.0.18",
     "wrangler": "^3.0.0"
   }
