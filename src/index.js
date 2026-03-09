@@ -1,24 +1,24 @@
-import { handleLoginGitHub } from "./routes/login/github.js"
-import { handleLoginLinkedIn } from "./routes/login/linkedin.js"
-import { handleCallbackGitHub } from "./routes/callback/github.js"
-import { handleCallbackLinkedIn } from "./routes/callback/linkedin.js"
+import { GitHubProvider } from "./providers/github.js"
+import { LinkedInProvider } from "./providers/linkedin.js"
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
+    const github = new GitHubProvider(env)
+    const linkedin = new LinkedInProvider(env)
 
     switch (url.pathname) {
       case "/login/github":
-        return handleLoginGitHub(request, env)
+        return github.login(request)
 
       case "/login/linkedin":
-        return handleLoginLinkedIn(request, env)
+        return linkedin.login(request)
 
       case "/callback/github":
-        return handleCallbackGitHub(request, env)
+        return github.callback(request)
 
       case "/callback/linkedin":
-        return handleCallbackLinkedIn(request, env)
+        return linkedin.callback(request)
 
       default:
         return new Response("OK")
