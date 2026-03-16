@@ -20,7 +20,6 @@
     "wrangler": "^4.74.0"
   },
   "dependencies": {
-    "oauth4webapi": "^3.8.5",
-    "yaml": "^2.8.2"
+    "oauth4webapi": "^3.8.5"
   }
 }

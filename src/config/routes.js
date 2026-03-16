@@ -1,5 +1,20 @@
-import { parse } from "yaml"
-
-import routesYaml from "./routes.yml"
-
-export default parse(routesYaml)
+export default [
+  {
+    method: "GET",
+    path: "/login/:provider",
+    controller: "OAuthController",
+    action: "login",
+  },
+  {
+    method: "GET",
+    path: "/callback/:provider",
+    controller: "OAuthController",
+    action: "callback",
+  },
+  {
+    method: "GET",
+    path: "/version",
+    controller: "VersionController",
+    action: "show",
+  },
+]

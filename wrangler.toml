@@ -10,8 +10,3 @@ invocation_logs = true
 [vars]
 # Set GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET
 # as secrets using: wrangler secret put <NAME>
-
-[[rules]]
-type = "Text"
-globs = ["**/*.yml"]
-fallthrough = true
