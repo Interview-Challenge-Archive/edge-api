@@ -1,0 +1,90 @@
+name: Dependabot auto-merge
+
+on:
+  workflow_run:
+    workflows:
+      - Lint
+      - Test
+    types:
+      - completed
+
+jobs:
+  automerge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Merge Dependabot PR after checks pass
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pullRequests = context.payload.workflow_run.pull_requests || [];
+
+            if (pullRequests.length === 0) {
+              core.info('No pull request is associated with this workflow run.');
+              return;
+            }
+
+            const pullNumber = pullRequests[0].number;
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pullNumber,
+            });
+
+            if (pullRequest.user.login !== 'dependabot[bot]') {
+              core.info(`PR #${pullNumber} was not opened by Dependabot.`);
+              return;
+            }
+
+            if (pullRequest.state !== 'open') {
+              core.info(`PR #${pullNumber} is already ${pullRequest.state}.`);
+              return;
+            }
+
+            if (pullRequest.draft) {
+              core.info(`PR #${pullNumber} is a draft.`);
+              return;
+            }
+
+            const requiredChecks = new Set(['Lint', 'Run tests']);
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref: pullRequest.head.sha,
+            });
+
+            for (const checkRun of checks.check_runs) {
+              if (
+                requiredChecks.has(checkRun.name) &&
+                checkRun.status === 'completed' &&
+                checkRun.conclusion === 'success'
+              ) {
+                requiredChecks.delete(checkRun.name);
+              }
+            }
+
+            if (requiredChecks.size > 0) {
+              core.info(
+                `PR #${pullNumber} is still waiting on: ${Array.from(requiredChecks).join(', ')}.`
+              );
+              return;
+            }
+
+            await github.rest.pulls.merge({
+              owner,
+              repo,
+              pull_number: pullNumber,
+              merge_method: 'squash',
+            });
+
+            core.info(`Merged Dependabot PR #${pullNumber}.`);
