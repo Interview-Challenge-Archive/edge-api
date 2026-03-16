@@ -1,5 +1,5 @@
-import providerConfigs from "./config/providers.yml"
-import routeConfigs from "./config/routes.yml"
+import providerConfigs from "./config/providers.js"
+import routeConfigs from "./config/routes.js"
 import { getController, matchRoute } from "./helpers/routing.js"
 import { InternalServerErrorResponse } from "./responses/internal-server-error-response.js"
 import { NotFoundResponse } from "./responses/not-found-response.js"

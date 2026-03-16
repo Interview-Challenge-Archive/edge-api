@@ -1,8 +1,20 @@
-import yaml from "@rollup/plugin-yaml"
 import { defineConfig } from "vitest/config"
 
+function yamlText() {
+  return {
+    name: "yaml-text",
+    transform(code, id) {
+      if (!id.endsWith(".yml")) {
+        return null
+      }
+
+      return `export default ${JSON.stringify(code)};`
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [yaml()],
+  plugins: [yamlText()],
   test: {
     environment: "node",
   },

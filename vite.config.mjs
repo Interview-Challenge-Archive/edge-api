@@ -1,10 +1,22 @@
 import { cloudflare } from "@cloudflare/vite-plugin"
-import yaml from "@rollup/plugin-yaml"
 import { defineConfig } from "vite"
+
+function yamlText() {
+  return {
+    name: "yaml-text",
+    transform(code, id) {
+      if (!id.endsWith(".yml")) {
+        return null
+      }
+
+      return `export default ${JSON.stringify(code)};`
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
-    yaml(),
+    yamlText(),
     cloudflare(),
   ],
   test: {

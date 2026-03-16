@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import providerConfigs from "../../src/config/providers.yml"
+import providerConfigs from "../../src/config/providers.js"
 import { OAuthController } from "../../src/controllers/oauth-controller.js"
 
 const env = {
