@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import worker from "./index.js"
+import worker from "../src/index.js"
 
 const env = {
   GITHUB_CLIENT_ID: "gh-client-id",
