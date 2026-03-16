@@ -13,6 +13,6 @@
     "eslint": "^9.39.4",
     "globals": "^17.4.0",
     "vitest": "^4.1.0",
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.74.0"
   }
 }
