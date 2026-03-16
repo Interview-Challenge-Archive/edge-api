@@ -17,16 +17,24 @@ beforeEach(() => {
 })
 
 describe("default route", () => {
-  it("returns 200 OK for unmatched paths", async () => {
+  it("returns 404 Not Found for unmatched paths", async () => {
     const res = await worker.fetch(makeRequest("/"), env)
-    expect(res.status).toBe(200)
-    expect(await res.text()).toBe("OK")
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe("Not Found")
   })
 
-  it("returns 200 OK for any unknown path", async () => {
+  it("returns 404 Not Found for any unknown path", async () => {
     const res = await worker.fetch(makeRequest("/unknown/path"), env)
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe("Not Found")
+  })
+})
+
+describe("GET /version", () => {
+  it("returns the version from package.json", async () => {
+    const res = await worker.fetch(makeRequest("/version"), env)
     expect(res.status).toBe(200)
-    expect(await res.text()).toBe("OK")
+    expect(await res.text()).toBe("1.0.0")
   })
 })
 
