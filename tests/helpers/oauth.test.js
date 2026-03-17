@@ -5,7 +5,6 @@ import {
   createPKCEPair,
   exchangeAuthorizationCode,
   getCodeVerifier,
-  jsonResponse,
   readCookie,
   validateCallback,
 } from "../../src/helpers/oauth.js"
@@ -74,13 +73,6 @@ describe("oauth helper", () => {
     expect(getCodeVerifier(makeRequest("/callback"), "pkce")).toBe(
       "edge-api-test-code-verifier-edge-api-test-code-verifier"
     )
-  })
-
-  it("creates JSON responses", async () => {
-    const response = jsonResponse({ ok: true })
-
-    expect(response.headers.get("content-type")).toBe("application/json")
-    expect(await response.json()).toEqual({ ok: true })
   })
 
   it("validates callback parameters when state matches", () => {

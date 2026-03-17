@@ -3,9 +3,9 @@ import {
   createPKCEPair,
   exchangeAuthorizationCode,
   getCodeVerifier,
-  jsonResponse,
   readCookie,
 } from "../helpers/oauth.js"
+import { JsonResponse } from "../responses/json-response.js"
 
 export class OAuthController {
   constructor(env, config) {
@@ -93,7 +93,7 @@ export class OAuthController {
       return new Response("Failed to fetch user profile", { status: 502 })
     }
 
-    return jsonResponse({
+    return new JsonResponse({
       provider: this.config.provider,
       user: await profileResponse.json(),
     })

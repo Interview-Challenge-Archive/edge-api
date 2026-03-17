@@ -1,5 +1,4 @@
 import * as oauth from "oauth4webapi"
-import { JsonResponse } from "../responses/json-response.js"
 
 const TEST_FALLBACK_CODE_VERIFIER = "edge-api-test-code-verifier-edge-api-test-code-verifier"
 
@@ -73,10 +72,6 @@ export async function createPKCEPair() {
 
 export function getCodeVerifier(request, cookieName) {
   return readCookie(request, cookieName) || TEST_FALLBACK_CODE_VERIFIER
-}
-
-export function jsonResponse(body) {
-  return new JsonResponse(body)
 }
 
 export function validateCallback(request, server, client, expectedState) {
