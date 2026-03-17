@@ -1,18 +1,76 @@
 name: Deploy
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - Lint
+      - Test
+    types:
+      - completed
 
 jobs:
+  gate:
+    name: Check deploy gate
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      should_deploy: ${{ steps.context.outputs.should_deploy }}
+      environment_name: ${{ steps.resolve.outputs.environment_name }}
+      command: ${{ steps.resolve.outputs.command }}
+      ref: ${{ steps.resolve.outputs.ref }}
+    steps:
+      - name: Check required checks
+        id: context
+        uses: ./.github/actions/check-required-checks
+        with:
+          required_checks: |
+            Lint
+            Run tests
+      - name: Resolve deploy target
+        id: resolve
+        if: steps.context.outputs.should_deploy == 'true'
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event.workflow_run.event }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          PULL_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          HEAD_REPO_FULL_NAME: ${{ github.event.workflow_run.pull_requests[0].head.repo.full_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          echo "ref=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+          if [ "$EVENT_NAME" = "push" ]; then
+            echo "environment_name=production" >> "$GITHUB_OUTPUT"
+            echo "command=deploy" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "$PULL_NUMBER" ]; then
+            echo "No pull request is associated with this workflow run." >&2
+            exit 1
+          fi
+
+          if [ "$HEAD_REPO_FULL_NAME" != "$REPOSITORY" ]; then
+            echo "Preview deploys only run for pull requests from the same repository." >&2
+            exit 1
+          fi
+
+          echo "environment_name=preview" >> "$GITHUB_OUTPUT"
+          echo "command=versions upload --preview-alias pr-$PULL_NUMBER" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy Worker
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs:
+      - gate
+    if: needs.gate.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+      name: ${{ needs.gate.outputs.environment_name }}
       url: ${{ steps.deploy.outputs.deployment-url }}
     permissions:
       contents: read
@@ -20,22 +78,38 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.gate.outputs.ref }}
 
-      - name: Resolve deploy command
-        id: resolve
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "command=versions upload --preview-alias pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "command=deploy" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Resolve Wrangler version
         id: wrangler
         shell: bash
         run: |
           echo "version=$(node -p "require('./package.json').devDependencies.wrangler.replace(/^[^0-9]*/, '')")" >> "$GITHUB_OUTPUT"
+
+      - name: Sync Worker secrets
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_CLIENT_ID: ${{ secrets.APP_GITHUB_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.APP_GITHUB_CLIENT_SECRET }}
+          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
+          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+        run: |
+          printf '%s' "$GITHUB_CLIENT_ID" | npx wrangler versions secret put GITHUB_CLIENT_ID
+          printf '%s' "$GITHUB_CLIENT_SECRET" | npx wrangler versions secret put GITHUB_CLIENT_SECRET
+          printf '%s' "$LINKEDIN_CLIENT_ID" | npx wrangler versions secret put LINKEDIN_CLIENT_ID
+          printf '%s' "$LINKEDIN_CLIENT_SECRET" | npx wrangler versions secret put LINKEDIN_CLIENT_SECRET
 
       - name: Deploy Worker
         id: deploy
@@ -45,14 +119,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           wranglerVersion: ${{ steps.wrangler.outputs.version }}
-          command: ${{ steps.resolve.outputs.command }}
-          secrets: |
-            GITHUB_CLIENT_ID
-            GITHUB_CLIENT_SECRET
-            LINKEDIN_CLIENT_ID
-            LINKEDIN_CLIENT_SECRET
-        env:
-          GITHUB_CLIENT_ID: ${{ secrets.APP_GITHUB_CLIENT_ID }}
-          GITHUB_CLIENT_SECRET: ${{ secrets.APP_GITHUB_CLIENT_SECRET }}
-          LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
-          LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          command: ${{ needs.gate.outputs.command }}

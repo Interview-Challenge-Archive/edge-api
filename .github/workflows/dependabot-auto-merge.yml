@@ -3,8 +3,7 @@ name: Dependabot auto-merge
 on:
   workflow_run:
     workflows:
-      - Lint
-      - Test
+      - Deploy
     types:
       - completed
 
@@ -56,7 +55,7 @@ jobs:
               return;
             }
 
-            const requiredChecks = new Set(['Lint', 'Run tests']);
+            const requiredChecks = new Set(['Deploy Worker']);
             const { data: checks } = await github.rest.checks.listForRef({
               owner,
               repo,
