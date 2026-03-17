@@ -11,7 +11,7 @@ const env = {
 }
 
 function makeRequest(path, { method = "GET", headers = {} } = {}) {
-  return new Request(`https://example.com${path}`, { method, headers })
+  return new Request("https://example.com" + path, { method, headers })
 }
 
 beforeEach(() => {
@@ -31,12 +31,39 @@ describe("OAuthController github", () => {
     expect(location.searchParams.get("scope")).toBe("read:user user:email")
   })
 
+  it("stores popup mode and app origin cookies when popup login is requested", async () => {
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.login(
+      makeRequest("/login/github?mode=popup&origin=https%3A%2F%2Fapp.example")
+    )
+
+    expect(res.status).toBe(302)
+    expect(res.headers.get("Set-Cookie")).toContain("github_pkce=")
+    expect(res.headers.get("Set-Cookie")).toContain("github_auth_mode=popup")
+    expect(res.headers.get("Set-Cookie")).toContain("github_auth_origin=https%3A%2F%2Fapp.example")
+  })
+
   it("returns 400 when code is missing", async () => {
     const controller = new OAuthController(env, providerConfigs.github)
     const res = await controller.callback(makeRequest("/callback/github"))
 
     expect(res.status).toBe(400)
     expect(await res.text()).toBe("Missing code")
+  })
+
+  it("returns popup HTML when code is missing in popup mode", async () => {
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.callback(
+      makeRequest("/callback/github", {
+        headers: {
+          Cookie: "github_auth_mode=popup; github_auth_origin=https%3A%2F%2Fapp.example"
+        }
+      })
+    )
+
+    expect(res.status).toBe(400)
+    expect(res.headers.get("content-type")).toContain("text/html")
+    expect(await res.text()).toContain("oauth-complete")
   })
 
   it("returns 502 when token exchange request fails", async () => {
@@ -127,6 +154,41 @@ describe("OAuthController github", () => {
     const body = await res.json()
     expect(body.provider).toBe("github")
     expect(body.user).toEqual(fakeUser)
+  })
+
+  it("returns popup HTML with the OAuth payload on success in popup mode", async () => {
+    const fakeUser = { id: 1, login: "octocat" }
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ access_token: "tok", token_type: "Bearer", scope: "read:user" }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(fakeUser), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        )
+    )
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.callback(makeRequest("/callback/github?code=abc", {
+      headers: {
+        Cookie: "github_auth_mode=popup; github_auth_origin=https%3A%2F%2Fapp.example"
+      }
+    }))
+    const body = await res.text()
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get("content-type")).toContain("text/html")
+    expect(body).toContain("oauth-complete")
+    expect(body).toContain("github")
+    expect(body).toContain("tok")
+    expect(body).toContain("octocat")
+    expect(body).toContain("https://app.example")
   })
 
   it("sends the correct token exchange request to GitHub", async () => {
@@ -313,6 +375,42 @@ describe("OAuthController linkedin", () => {
     expect(body.user).toEqual(fakeUser)
   })
 
+  it("returns popup HTML with the OAuth payload on success in popup mode", async () => {
+    const fakeUser = { sub: "123", name: "Alice" }
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ access_token: "litoken", token_type: "Bearer" }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(fakeUser), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        )
+    )
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(
+      makeRequest("/callback/linkedin?code=abc&state=s1", {
+        headers: {
+          Cookie: "linkedin_state=s1; linkedin_auth_mode=popup; linkedin_auth_origin=https%3A%2F%2Fapp.example"
+        }
+      })
+    )
+    const body = await res.text()
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get("content-type")).toContain("text/html")
+    expect(body).toContain("oauth-complete")
+    expect(body).toContain("linkedin")
+    expect(body).toContain("litoken")
+    expect(body).toContain("Alice")
+  })
+
   it("sends the correct token exchange request to LinkedIn", async () => {
     const mockFetch = vi.fn()
       .mockResolvedValueOnce(
@@ -379,3 +477,5 @@ describe("OAuthController linkedin", () => {
     expect(body.provider).toBe("linkedin")
   })
 })
+
+
