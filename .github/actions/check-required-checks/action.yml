@@ -1,0 +1,52 @@
+name: Check required checks
+description: Check whether the current workflow_run has all required checks completed successfully.
+inputs:
+  required_checks:
+    description: Newline-separated list of required check run names.
+    required: true
+outputs:
+  should_deploy:
+    description: Whether the current workflow run has met the deploy gate criteria.
+    value: ${{ steps.context.outputs.should_deploy }}
+runs:
+  using: composite
+  steps:
+    - name: Check required workflow results
+      id: context
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const workflowRun = context.payload.workflow_run;
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+          const ref = workflowRun.head_sha;
+          const requiredChecks = new Set(
+            `${{ inputs.required_checks }}`
+              .split("\n")
+              .map((name) => name.trim())
+              .filter(Boolean)
+          );
+
+          const { data: checks } = await github.rest.checks.listForRef({
+            owner,
+            repo,
+            ref,
+          });
+
+          for (const checkRun of checks.check_runs) {
+            if (
+              requiredChecks.has(checkRun.name) &&
+              checkRun.status === "completed" &&
+              checkRun.conclusion === "success"
+            ) {
+              requiredChecks.delete(checkRun.name);
+            }
+          }
+
+          if (requiredChecks.size > 0) {
+            core.info(`Still waiting on: ${Array.from(requiredChecks).join(", ")}.`);
+            core.setOutput("should_deploy", "false");
+            return;
+          }
+
+          core.setOutput("should_deploy", "true");
