@@ -21,6 +21,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Resolve deploy command
         id: resolve
         shell: bash
@@ -46,13 +54,18 @@ jobs:
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           wranglerVersion: ${{ steps.wrangler.outputs.version }}
           command: ${{ steps.resolve.outputs.command }}
-          secrets: |
-            GITHUB_CLIENT_ID
-            GITHUB_CLIENT_SECRET
-            LINKEDIN_CLIENT_ID
-            LINKEDIN_CLIENT_SECRET
+
+      - name: Sync Worker secrets
+        shell: bash
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GITHUB_CLIENT_ID: ${{ secrets.APP_GITHUB_CLIENT_ID }}
           GITHUB_CLIENT_SECRET: ${{ secrets.APP_GITHUB_CLIENT_SECRET }}
           LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
           LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+        run: |
+          printf '%s' "$GITHUB_CLIENT_ID" | npx wrangler secret put GITHUB_CLIENT_ID
+          printf '%s' "$GITHUB_CLIENT_SECRET" | npx wrangler secret put GITHUB_CLIENT_SECRET
+          printf '%s' "$LINKEDIN_CLIENT_ID" | npx wrangler secret put LINKEDIN_CLIENT_ID
+          printf '%s' "$LINKEDIN_CLIENT_SECRET" | npx wrangler secret put LINKEDIN_CLIENT_SECRET
