@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { TeapotResponse } from "../../src/responses/teapot-response.js"
+import { TeapotResponse } from "../../../src/responses/teapot/teapot-response.js"
 
 describe("TeapotResponse", () => {
   it("returns a 418 JSON teapot payload", async () => {

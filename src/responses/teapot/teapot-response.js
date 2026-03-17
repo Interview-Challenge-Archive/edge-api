@@ -1,4 +1,4 @@
-import { JsonResponse } from "./json-response.js"
+import { JsonResponse } from "../base/json-response.js"
 
 export class TeapotResponse extends JsonResponse {
   constructor() {

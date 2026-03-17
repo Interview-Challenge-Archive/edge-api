@@ -5,11 +5,11 @@ import {
   getCodeVerifier,
   readCookie,
 } from "../helpers/oauth.js"
-import { FailedToFetchUserProfileResponse } from "../responses/failed-to-fetch-user-profile-response.js"
-import { InvalidStateResponse } from "../responses/invalid-state-response.js"
-import { JsonResponse } from "../responses/json-response.js"
-import { MissingCodeResponse } from "../responses/missing-code-response.js"
-import { RedirectResponse } from "../responses/redirect-response.js"
+import { JsonResponse } from "../responses/base/json-response.js"
+import { FailedToFetchUserProfileResponse } from "../responses/oauth/failed-to-fetch-user-profile-response.js"
+import { InvalidStateResponse } from "../responses/oauth/invalid-state-response.js"
+import { MissingCodeResponse } from "../responses/oauth/missing-code-response.js"
+import { RedirectResponse } from "../responses/oauth/redirect-response.js"
 
 export class OAuthController {
   constructor(env, config) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { JsonResponse } from "../../src/responses/json-response.js"
+import { JsonResponse } from "../../../src/responses/base/json-response.js"
 
 describe("JsonResponse", () => {
   it("returns a 200 JSON response by default", async () => {

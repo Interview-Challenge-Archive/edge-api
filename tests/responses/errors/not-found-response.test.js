@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { NotFoundResponse } from "../../src/responses/not-found-response.js"
+import { NotFoundResponse } from "../../../src/responses/errors/not-found-response.js"
 
 describe("NotFoundResponse", () => {
   it("returns a 404 response with the expected body", async () => {

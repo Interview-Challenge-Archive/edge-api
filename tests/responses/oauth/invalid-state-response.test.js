@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { InvalidStateResponse } from "../../src/responses/invalid-state-response.js"
+import { InvalidStateResponse } from "../../../src/responses/oauth/invalid-state-response.js"
 
 describe("InvalidStateResponse", () => {
   it("returns a 400 response with the expected body", async () => {

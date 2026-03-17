@@ -1,4 +1,4 @@
-import { TeapotResponse } from "../responses/teapot-response.js"
+import { TeapotResponse } from "../responses/teapot/teapot-response.js"
 
 export class TeapotController {
   brew() {

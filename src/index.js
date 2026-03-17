@@ -1,8 +1,8 @@
 import providerConfigs from "./config/providers.js"
 import routeConfigs from "./config/routes.js"
 import { matchRoute } from "./helpers/routing.js"
-import { InternalServerErrorResponse } from "./responses/internal-server-error-response.js"
-import { NotFoundResponse } from "./responses/not-found-response.js"
+import { InternalServerErrorResponse } from "./responses/errors/internal-server-error-response.js"
+import { NotFoundResponse } from "./responses/errors/not-found-response.js"
 
 export default {
   async fetch(request, env) {

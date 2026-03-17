@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { FailedToFetchUserProfileResponse } from "../../src/responses/failed-to-fetch-user-profile-response.js"
+import { FailedToFetchUserProfileResponse } from "../../../src/responses/oauth/failed-to-fetch-user-profile-response.js"
 
 describe("FailedToFetchUserProfileResponse", () => {
   it("returns a 502 response with the expected body", async () => {
