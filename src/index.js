@@ -1,27 +1,31 @@
-import { GitHubProvider } from "./providers/github.js"
-import { LinkedInProvider } from "./providers/linkedin.js"
+import providerConfigs from "./config/providers.js"
+import routeConfigs from "./config/routes.js"
+import { matchRoute } from "./helpers/routing.js"
+import { InternalServerErrorResponse } from "./responses/errors/internal-server-error-response.js"
+import { NotFoundResponse } from "./responses/errors/not-found-response.js"
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
-    const github = new GitHubProvider(env)
-    const linkedin = new LinkedInProvider(env)
+    const match = matchRoute(routeConfigs, url.pathname, request.method)
 
-    switch (url.pathname) {
-      case "/login/github":
-        return github.login(request)
-
-      case "/login/linkedin":
-        return linkedin.login(request)
-
-      case "/callback/github":
-        return github.callback(request)
-
-      case "/callback/linkedin":
-        return linkedin.callback(request)
-
-      default:
-        return new Response("OK")
+    if (!match) {
+      return new NotFoundResponse()
     }
+
+    if (match.params.provider && !providerConfigs[match.params.provider]) {
+      return new NotFoundResponse()
+    }
+
+    const Controller = match.route.controller
+
+    if (!Controller) {
+      return new InternalServerErrorResponse()
+    }
+
+    const config = match.params.provider ? providerConfigs[match.params.provider] : null
+    const controller = new Controller(env, config)
+
+    return controller[match.route.action](request)
   }
 }

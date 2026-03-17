@@ -4,16 +4,22 @@
   "private": true,
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "vite",
+    "build": "vite build",
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "lint": "eslint src/"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.29.0",
     "@eslint/js": "^10.0.1",
     "eslint": "^10.0.3",
     "globals": "^17.4.0",
+    "vite": "^8.0.0",
     "vitest": "^4.1.0",
     "wrangler": "^4.74.0"
+  },
+  "dependencies": {
+    "oauth4webapi": "^3.8.5"
   }
 }

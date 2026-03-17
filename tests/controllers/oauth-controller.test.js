@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import worker from "./index.js"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import providerConfigs from "../../src/config/providers.js"
+import { OAuthController } from "../../src/controllers/oauth-controller.js"
 
 const env = {
   GITHUB_CLIENT_ID: "gh-client-id",
@@ -16,23 +18,11 @@ beforeEach(() => {
   vi.restoreAllMocks()
 })
 
-describe("default route", () => {
-  it("returns 200 OK for unmatched paths", async () => {
-    const res = await worker.fetch(makeRequest("/"), env)
-    expect(res.status).toBe(200)
-    expect(await res.text()).toBe("OK")
-  })
-
-  it("returns 200 OK for any unknown path", async () => {
-    const res = await worker.fetch(makeRequest("/unknown/path"), env)
-    expect(res.status).toBe(200)
-    expect(await res.text()).toBe("OK")
-  })
-})
-
-describe("GET /login/github", () => {
+describe("OAuthController github", () => {
   it("redirects to GitHub OAuth authorization URL", async () => {
-    const res = await worker.fetch(makeRequest("/login/github"), env)
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.login(makeRequest("/login/github"))
+
     expect(res.status).toBe(302)
     const location = new URL(res.headers.get("Location"))
     expect(location.origin + location.pathname).toBe("https://github.com/login/oauth/authorize")
@@ -40,49 +30,20 @@ describe("GET /login/github", () => {
     expect(location.searchParams.get("redirect_uri")).toBe("https://example.com/callback/github")
     expect(location.searchParams.get("scope")).toBe("read:user user:email")
   })
-})
 
-describe("GET /login/linkedin", () => {
-  it("redirects to LinkedIn OAuth authorization URL with state cookie", async () => {
-    const res = await worker.fetch(makeRequest("/login/linkedin"), env)
-    expect(res.status).toBe(302)
-
-    const location = new URL(res.headers.get("Location"))
-    expect(location.origin + location.pathname).toBe("https://www.linkedin.com/oauth/v2/authorization")
-    expect(location.searchParams.get("response_type")).toBe("code")
-    expect(location.searchParams.get("client_id")).toBe("li-client-id")
-    expect(location.searchParams.get("redirect_uri")).toBe("https://example.com/callback/linkedin")
-    expect(location.searchParams.get("scope")).toBe("openid profile email")
-
-    const state = location.searchParams.get("state")
-    expect(state).toBeTruthy()
-
-    const setCookie = res.headers.get("Set-Cookie")
-    expect(setCookie).toContain(`linkedin_state=${state}`)
-    expect(setCookie).toContain("HttpOnly")
-    expect(setCookie).toContain("Secure")
-    expect(setCookie).toContain("SameSite=Lax")
-  })
-
-  it("generates a unique state on each request", async () => {
-    const res1 = await worker.fetch(makeRequest("/login/linkedin"), env)
-    const res2 = await worker.fetch(makeRequest("/login/linkedin"), env)
-    const state1 = new URL(res1.headers.get("Location")).searchParams.get("state")
-    const state2 = new URL(res2.headers.get("Location")).searchParams.get("state")
-    expect(state1).not.toBe(state2)
-  })
-})
-
-describe("GET /callback/github", () => {
   it("returns 400 when code is missing", async () => {
-    const res = await worker.fetch(makeRequest("/callback/github"), env)
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.callback(makeRequest("/callback/github"))
+
     expect(res.status).toBe(400)
     expect(await res.text()).toBe("Missing code")
   })
 
   it("returns 502 when token exchange request fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(null, { status: 500 })))
-    const res = await worker.fetch(makeRequest("/callback/github?code=abc"), env)
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.callback(makeRequest("/callback/github?code=abc"))
+
     expect(res.status).toBe(502)
     expect(await res.text()).toBe("Token exchange failed")
   })
@@ -97,7 +58,9 @@ describe("GET /callback/github", () => {
         })
       )
     )
-    const res = await worker.fetch(makeRequest("/callback/github?code=abc"), env)
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.callback(makeRequest("/callback/github?code=abc"))
+
     expect(res.status).toBe(400)
     expect(await res.text()).toContain("The code passed is incorrect")
   })
@@ -112,7 +75,9 @@ describe("GET /callback/github", () => {
         })
       )
     )
-    const res = await worker.fetch(makeRequest("/callback/github?code=abc"), env)
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.callback(makeRequest("/callback/github?code=abc"))
+
     expect(res.status).toBe(400)
     expect(await res.text()).toContain("bad_verification_code")
   })
@@ -129,7 +94,9 @@ describe("GET /callback/github", () => {
         )
         .mockResolvedValueOnce(new Response(null, { status: 401 }))
     )
-    const res = await worker.fetch(makeRequest("/callback/github?code=abc"), env)
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.callback(makeRequest("/callback/github?code=abc"))
+
     expect(res.status).toBe(502)
     expect(await res.text()).toBe("Failed to fetch user profile")
   })
@@ -152,7 +119,9 @@ describe("GET /callback/github", () => {
           })
         )
     )
-    const res = await worker.fetch(makeRequest("/callback/github?code=abc"), env)
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.callback(makeRequest("/callback/github?code=abc"))
+
     expect(res.status).toBe(200)
     expect(res.headers.get("content-type")).toBe("application/json")
     const body = await res.json()
@@ -175,8 +144,9 @@ describe("GET /callback/github", () => {
         })
       )
     vi.stubGlobal("fetch", mockFetch)
+    const controller = new OAuthController(env, providerConfigs.github)
 
-    await worker.fetch(makeRequest("/callback/github?code=mycode"), env)
+    await controller.callback(makeRequest("/callback/github?code=mycode"))
 
     const [tokenUrl, tokenOpts] = mockFetch.mock.calls[0]
     expect(tokenUrl).toBe("https://github.com/login/oauth/access_token")
@@ -193,43 +163,82 @@ describe("GET /callback/github", () => {
   })
 })
 
-describe("GET /callback/linkedin", () => {
+describe("OAuthController linkedin", () => {
+  it("redirects to LinkedIn OAuth authorization URL with state cookie", async () => {
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.login(makeRequest("/login/linkedin"))
+
+    expect(res.status).toBe(302)
+    const location = new URL(res.headers.get("Location"))
+    expect(location.origin + location.pathname).toBe("https://www.linkedin.com/oauth/v2/authorization")
+    expect(location.searchParams.get("response_type")).toBe("code")
+    expect(location.searchParams.get("client_id")).toBe("li-client-id")
+    expect(location.searchParams.get("redirect_uri")).toBe("https://example.com/callback/linkedin")
+    expect(location.searchParams.get("scope")).toBe("openid profile email")
+
+    const state = location.searchParams.get("state")
+    expect(state).toBeTruthy()
+
+    const setCookie = res.headers.get("Set-Cookie")
+    expect(setCookie).toContain(`linkedin_state=${state}`)
+    expect(setCookie).toContain("HttpOnly")
+    expect(setCookie).toContain("Secure")
+    expect(setCookie).toContain("SameSite=Lax")
+  })
+
+  it("generates a unique state on each request", async () => {
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res1 = await controller.login(makeRequest("/login/linkedin"))
+    const res2 = await controller.login(makeRequest("/login/linkedin"))
+    const state1 = new URL(res1.headers.get("Location")).searchParams.get("state")
+    const state2 = new URL(res2.headers.get("Location")).searchParams.get("state")
+
+    expect(state1).not.toBe(state2)
+  })
+
   it("returns 400 when code is missing", async () => {
-    const res = await worker.fetch(makeRequest("/callback/linkedin"), env)
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(makeRequest("/callback/linkedin"))
+
     expect(res.status).toBe(400)
     expect(await res.text()).toBe("Missing code")
   })
 
   it("returns 400 when state parameter is missing", async () => {
-    const res = await worker.fetch(
-      makeRequest("/callback/linkedin?code=abc", { headers: { Cookie: "linkedin_state=mystate" } }),
-      env
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(
+      makeRequest("/callback/linkedin?code=abc", { headers: { Cookie: "linkedin_state=mystate" } })
     )
+
     expect(res.status).toBe(400)
     expect(await res.text()).toBe("Invalid state")
   })
 
   it("returns 400 when state cookie is missing", async () => {
-    const res = await worker.fetch(makeRequest("/callback/linkedin?code=abc&state=mystate"), env)
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(makeRequest("/callback/linkedin?code=abc&state=mystate"))
+
     expect(res.status).toBe(400)
     expect(await res.text()).toBe("Invalid state")
   })
 
   it("returns 400 when state parameter does not match cookie", async () => {
-    const res = await worker.fetch(
-      makeRequest("/callback/linkedin?code=abc&state=wrong", { headers: { Cookie: "linkedin_state=correct" } }),
-      env
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(
+      makeRequest("/callback/linkedin?code=abc&state=wrong", { headers: { Cookie: "linkedin_state=correct" } })
     )
+
     expect(res.status).toBe(400)
     expect(await res.text()).toBe("Invalid state")
   })
 
   it("returns 502 when token exchange request fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(null, { status: 500 })))
-    const res = await worker.fetch(
-      makeRequest("/callback/linkedin?code=abc&state=s1", { headers: { Cookie: "linkedin_state=s1" } }),
-      env
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(
+      makeRequest("/callback/linkedin?code=abc&state=s1", { headers: { Cookie: "linkedin_state=s1" } })
     )
+
     expect(res.status).toBe(502)
     expect(await res.text()).toBe("Token exchange failed")
   })
@@ -244,10 +253,11 @@ describe("GET /callback/linkedin", () => {
         })
       )
     )
-    const res = await worker.fetch(
-      makeRequest("/callback/linkedin?code=abc&state=s1", { headers: { Cookie: "linkedin_state=s1" } }),
-      env
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(
+      makeRequest("/callback/linkedin?code=abc&state=s1", { headers: { Cookie: "linkedin_state=s1" } })
     )
+
     expect(res.status).toBe(400)
     expect(await res.text()).toContain("Code expired")
   })
@@ -264,10 +274,11 @@ describe("GET /callback/linkedin", () => {
         )
         .mockResolvedValueOnce(new Response(null, { status: 403 }))
     )
-    const res = await worker.fetch(
-      makeRequest("/callback/linkedin?code=abc&state=s1", { headers: { Cookie: "linkedin_state=s1" } }),
-      env
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(
+      makeRequest("/callback/linkedin?code=abc&state=s1", { headers: { Cookie: "linkedin_state=s1" } })
     )
+
     expect(res.status).toBe(502)
     expect(await res.text()).toBe("Failed to fetch user profile")
   })
@@ -290,10 +301,11 @@ describe("GET /callback/linkedin", () => {
           })
         )
     )
-    const res = await worker.fetch(
-      makeRequest("/callback/linkedin?code=abc&state=s1", { headers: { Cookie: "linkedin_state=s1" } }),
-      env
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(
+      makeRequest("/callback/linkedin?code=abc&state=s1", { headers: { Cookie: "linkedin_state=s1" } })
     )
+
     expect(res.status).toBe(200)
     expect(res.headers.get("content-type")).toBe("application/json")
     const body = await res.json()
@@ -316,10 +328,10 @@ describe("GET /callback/linkedin", () => {
         })
       )
     vi.stubGlobal("fetch", mockFetch)
+    const controller = new OAuthController(env, providerConfigs.linkedin)
 
-    await worker.fetch(
-      makeRequest("/callback/linkedin?code=mycode&state=s1", { headers: { Cookie: "linkedin_state=s1" } }),
-      env
+    await controller.callback(
+      makeRequest("/callback/linkedin?code=mycode&state=s1", { headers: { Cookie: "linkedin_state=s1" } })
     )
 
     const [tokenUrl, tokenOpts] = mockFetch.mock.calls[0]
@@ -355,12 +367,13 @@ describe("GET /callback/linkedin", () => {
           })
         )
     )
-    const res = await worker.fetch(
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.callback(
       makeRequest("/callback/linkedin?code=abc&state=s2", {
         headers: { Cookie: "other=val; linkedin_state=s2; another=x" },
-      }),
-      env
+      })
     )
+
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.provider).toBe("linkedin")
