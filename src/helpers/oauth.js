@@ -18,17 +18,16 @@ function createClient(clientId) {
 
 function createTokenFetch(contentType) {
   return (url, options) => {
-    const headers = { ...options.headers }
-    const body = contentType === "application/json"
-      ? JSON.stringify(Object.fromEntries(new URLSearchParams(options.body)))
-      : options.body.toString()
-
-    headers["Content-Type"] = contentType
+    const headers = {
+      ...options.headers,
+      "Accept": "application/json",
+      "Content-Type": contentType,
+    }
 
     return fetch(url, {
       method: options.method,
       headers,
-      body,
+      body: options.body.toString(),
     })
   }
 }
@@ -142,3 +141,4 @@ export async function exchangeAuthorizationCode({
     return { error: new Response("Token exchange failed", { status: 502 }) }
   }
 }
+

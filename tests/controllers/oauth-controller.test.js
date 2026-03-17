@@ -213,12 +213,13 @@ describe("OAuthController github", () => {
     const [tokenUrl, tokenOpts] = mockFetch.mock.calls[0]
     expect(tokenUrl).toBe("https://github.com/login/oauth/access_token")
     expect(tokenOpts.method).toBe("POST")
-    const sentBody = JSON.parse(tokenOpts.body)
-    expect(sentBody.client_id).toBe("gh-client-id")
-    expect(sentBody.client_secret).toBe("gh-client-secret")
-    expect(sentBody.code).toBe("mycode")
-    expect(sentBody.redirect_uri).toBe("https://example.com/callback/github")
-
+    const sentBody = new URLSearchParams(tokenOpts.body)
+    expect(sentBody.get("client_id")).toBe("gh-client-id")
+    expect(sentBody.get("client_secret")).toBe("gh-client-secret")
+    expect(sentBody.get("code")).toBe("mycode")
+    expect(sentBody.get("redirect_uri")).toBe("https://example.com/callback/github")
+    expect(tokenOpts.headers["Content-Type"]).toBe("application/x-www-form-urlencoded")
+    expect(tokenOpts.headers["Accept"]).toBe("application/json")
     const [userUrl, userOpts] = mockFetch.mock.calls[1]
     expect(userUrl).toBe("https://api.github.com/user")
     expect(userOpts.headers["Authorization"]).toBe("Bearer tok")
@@ -477,5 +478,6 @@ describe("OAuthController linkedin", () => {
     expect(body.provider).toBe("linkedin")
   })
 })
+
 
 
