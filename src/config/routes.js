@@ -1,4 +1,5 @@
 import { OAuthController } from "../controllers/oauth-controller.js"
+import { TeapotController } from "../controllers/teapot-controller.js"
 import { VersionController } from "../controllers/version-controller.js"
 
 export default [
@@ -19,5 +20,11 @@ export default [
     path: "/version",
     controller: VersionController,
     action: "show",
+  },
+  {
+    method: "GET",
+    path: "/",
+    controller: TeapotController,
+    action: "brew",
   },
 ]

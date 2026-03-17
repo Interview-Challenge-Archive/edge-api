@@ -1,4 +1,5 @@
 import * as oauth from "oauth4webapi"
+import { JsonResponse } from "../responses/json-response.js"
 
 const TEST_FALLBACK_CODE_VERIFIER = "edge-api-test-code-verifier-edge-api-test-code-verifier"
 
@@ -75,9 +76,7 @@ export function getCodeVerifier(request, cookieName) {
 }
 
 export function jsonResponse(body) {
-  return new Response(JSON.stringify(body), {
-    headers: { "content-type": "application/json" },
-  })
+  return new JsonResponse(body)
 }
 
 export function validateCallback(request, server, client, expectedState) {

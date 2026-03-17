@@ -14,11 +14,18 @@ function makeRequest(path, { method = "GET", headers = {} } = {}) {
 }
 
 describe("index worker routing", () => {
-  it("returns 404 Not Found for unmatched paths", async () => {
+  it("returns a teapot response for the root path", async () => {
     const res = await worker.fetch(makeRequest("/"), env)
+    const body = await res.json()
 
-    expect(res.status).toBe(404)
-    expect(await res.text()).toBe("Not Found")
+    expect(res.status).toBe(418)
+    expect(res.headers.get("content-type")).toContain("application/json")
+    expect(body).toEqual({
+      error: "teapot",
+      message: "I'm a teapot",
+      beverage: "tea",
+      status: 418,
+    })
   })
 
   it("returns 404 Not Found for any unknown path", async () => {
