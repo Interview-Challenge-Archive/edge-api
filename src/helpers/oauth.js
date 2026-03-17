@@ -93,7 +93,7 @@ export async function exchangeAuthorizationCode({
   tokenEndpoint,
   tokenContentType,
   expectedState = oauth.expectNoState,
-  codeVerifier,
+  codeVerifier = oauth.nopkce,
 }) {
   const url = new URL(request.url)
   const redirectUri = `${url.origin}${redirectPath}`
