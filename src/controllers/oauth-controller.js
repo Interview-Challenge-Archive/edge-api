@@ -81,18 +81,23 @@ export class OAuthController {
 
   async login(request) {
     const url = new URL(request.url)
-    const { codeVerifier, codeChallenge } = await createPKCEPair()
+    const usesPkce = this.config.usePkce !== false
+    const pkcePair = usesPkce ? await createPKCEPair() : null
     const response = createAuthorizationUrl(request, this.config.authorizationEndpoint, {
       client_id: this.clientId,
       redirect_uri: `${url.origin}${this.config.redirectPath}`,
       scope: this.config.scope,
-      code_challenge: codeChallenge,
-      code_challenge_method: "S256",
+      ...(pkcePair ? {
+        code_challenge: pkcePair.codeChallenge,
+        code_challenge_method: "S256",
+      } : {}),
       ...this.config.authorizationParams,
     })
     const headers = new Headers(response.headers)
 
-    this.appendCookie(headers, this.config.cookies.pkce, codeVerifier)
+    if (pkcePair) {
+      this.appendCookie(headers, this.config.cookies.pkce, pkcePair.codeVerifier)
+    }
 
     if (url.searchParams.get("mode") === "popup") {
       this.appendCookie(headers, this.config.cookies.mode, "popup")
@@ -154,7 +159,9 @@ export class OAuthController {
       tokenEndpoint: this.config.tokenEndpoint,
       tokenContentType: this.config.tokenContentType,
       expectedState,
-      codeVerifier: getCodeVerifier(request, this.config.cookies.pkce),
+      codeVerifier: this.config.usePkce === false
+        ? undefined
+        : getCodeVerifier(request, this.config.cookies.pkce),
     })
 
     if (error) {

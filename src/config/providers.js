@@ -29,6 +29,7 @@ export default {
     profileEndpoint: "https://api.linkedin.com/v2/userinfo",
     redirectPath: "/callback/linkedin",
     scope: "openid profile email",
+    usePkce: false,
     tokenContentType: "application/x-www-form-urlencoded",
     requiresState: true,
     authorizationParams: {

@@ -29,6 +29,8 @@ describe("OAuthController github", () => {
     expect(location.searchParams.get("client_id")).toBe("gh-client-id")
     expect(location.searchParams.get("redirect_uri")).toBe("https://example.com/callback/github")
     expect(location.searchParams.get("scope")).toBe("read:user user:email")
+    expect(location.searchParams.get("code_challenge")).toBeTruthy()
+    expect(location.searchParams.get("code_challenge_method")).toBe("S256")
   })
 
   it("stores popup mode and app origin cookies when popup login is requested", async () => {
@@ -238,11 +240,14 @@ describe("OAuthController linkedin", () => {
     expect(location.searchParams.get("client_id")).toBe("li-client-id")
     expect(location.searchParams.get("redirect_uri")).toBe("https://example.com/callback/linkedin")
     expect(location.searchParams.get("scope")).toBe("openid profile email")
+    expect(location.searchParams.get("code_challenge")).toBeNull()
+    expect(location.searchParams.get("code_challenge_method")).toBeNull()
 
     const state = location.searchParams.get("state")
     expect(state).toBeTruthy()
 
     const setCookie = res.headers.get("Set-Cookie")
+    expect(setCookie).not.toContain("linkedin_pkce=")
     expect(setCookie).toContain(`linkedin_state=${state}`)
     expect(setCookie).toContain("HttpOnly")
     expect(setCookie).toContain("Secure")
@@ -442,6 +447,7 @@ describe("OAuthController linkedin", () => {
     expect(sentBody.get("client_id")).toBe("li-client-id")
     expect(sentBody.get("client_secret")).toBe("li-client-secret")
     expect(sentBody.get("redirect_uri")).toBe("https://example.com/callback/linkedin")
+    expect(sentBody.get("code_verifier")).toBeNull()
 
     const [profileUrl, profileOpts] = mockFetch.mock.calls[1]
     expect(profileUrl).toBe("https://api.linkedin.com/v2/userinfo")
