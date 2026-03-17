@@ -5,7 +5,11 @@ import {
   getCodeVerifier,
   readCookie,
 } from "../helpers/oauth.js"
+import { FailedToFetchUserProfileResponse } from "../responses/failed-to-fetch-user-profile-response.js"
+import { InvalidStateResponse } from "../responses/invalid-state-response.js"
 import { JsonResponse } from "../responses/json-response.js"
+import { MissingCodeResponse } from "../responses/missing-code-response.js"
+import { RedirectResponse } from "../responses/redirect-response.js"
 
 export class OAuthController {
   constructor(env, config) {
@@ -44,7 +48,7 @@ export class OAuthController {
       )
     }
 
-    return new Response(null, { status: 302, headers })
+    return new RedirectResponse(headers)
   }
 
   async callback(request) {
@@ -52,7 +56,7 @@ export class OAuthController {
     const code = url.searchParams.get("code")
 
     if (!code) {
-      return new Response("Missing code", { status: 400 })
+      return new MissingCodeResponse()
     }
 
     let expectedState
@@ -61,7 +65,7 @@ export class OAuthController {
       expectedState = readCookie(request, this.config.cookies.state)
 
       if (!expectedState) {
-        return new Response("Invalid state", { status: 400 })
+        return new InvalidStateResponse()
       }
     }
 
@@ -90,7 +94,7 @@ export class OAuthController {
     })
 
     if (!profileResponse.ok) {
-      return new Response("Failed to fetch user profile", { status: 502 })
+      return new FailedToFetchUserProfileResponse()
     }
 
     return new JsonResponse({
