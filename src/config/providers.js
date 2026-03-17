@@ -7,7 +7,7 @@ export default {
     profileEndpoint: "https://api.github.com/user",
     redirectPath: "/callback/github",
     scope: "read:user user:email",
-    tokenContentType: "application/json",
+    tokenContentType: "application/x-www-form-urlencoded",
     env: {
       clientId: "GITHUB_CLIENT_ID",
       clientSecret: "GITHUB_CLIENT_SECRET",
@@ -46,3 +46,4 @@ export default {
     },
   },
 }
+
