@@ -45,16 +45,6 @@ jobs:
         run: |
           echo "version=$(node -p "require('./package.json').devDependencies.wrangler.replace(/^[^0-9]*/, '')")" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy Worker
-        id: deploy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          wranglerVersion: ${{ steps.wrangler.outputs.version }}
-          command: ${{ steps.resolve.outputs.command }}
-
       - name: Sync Worker secrets
         shell: bash
         env:
@@ -65,7 +55,17 @@ jobs:
           LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
           LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
         run: |
-          printf '%s' "$GITHUB_CLIENT_ID" | npx wrangler secret put GITHUB_CLIENT_ID
-          printf '%s' "$GITHUB_CLIENT_SECRET" | npx wrangler secret put GITHUB_CLIENT_SECRET
-          printf '%s' "$LINKEDIN_CLIENT_ID" | npx wrangler secret put LINKEDIN_CLIENT_ID
-          printf '%s' "$LINKEDIN_CLIENT_SECRET" | npx wrangler secret put LINKEDIN_CLIENT_SECRET
+          printf '%s' "$GITHUB_CLIENT_ID" | npx wrangler versions secret put GITHUB_CLIENT_ID
+          printf '%s' "$GITHUB_CLIENT_SECRET" | npx wrangler versions secret put GITHUB_CLIENT_SECRET
+          printf '%s' "$LINKEDIN_CLIENT_ID" | npx wrangler versions secret put LINKEDIN_CLIENT_ID
+          printf '%s' "$LINKEDIN_CLIENT_SECRET" | npx wrangler versions secret put LINKEDIN_CLIENT_SECRET
+
+      - name: Deploy Worker
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: ${{ steps.wrangler.outputs.version }}
+          command: ${{ steps.resolve.outputs.command }}
