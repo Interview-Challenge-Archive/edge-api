@@ -14,6 +14,8 @@ export default {
     },
     cookies: {
       pkce: "github_pkce",
+      mode: "github_auth_mode",
+      origin: "github_auth_origin",
     },
     profileHeaders: {
       "User-Agent": "worker",
@@ -39,6 +41,8 @@ export default {
     cookies: {
       state: "linkedin_state",
       pkce: "linkedin_pkce",
+      mode: "linkedin_auth_mode",
+      origin: "linkedin_auth_origin",
     },
   },
 }

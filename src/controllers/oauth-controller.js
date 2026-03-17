@@ -9,6 +9,7 @@ import { JsonResponse } from "../responses/base/json-response.js"
 import { FailedToFetchUserProfileResponse } from "../responses/oauth/failed-to-fetch-user-profile-response.js"
 import { InvalidStateResponse } from "../responses/oauth/invalid-state-response.js"
 import { MissingCodeResponse } from "../responses/oauth/missing-code-response.js"
+import { PopupResponse } from "../responses/oauth/popup-response.js"
 import { RedirectResponse } from "../responses/oauth/redirect-response.js"
 
 export class OAuthController {
@@ -16,6 +17,66 @@ export class OAuthController {
     this.config = config
     this.clientId = env[config.env.clientId]
     this.clientSecret = env[config.env.clientSecret]
+  }
+
+  appendCookie(headers, name, value) {
+    headers.append(
+      "Set-Cookie",
+      `${name}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/`
+    )
+  }
+
+  expireCookie(headers, name) {
+    headers.append(
+      "Set-Cookie",
+      `${name}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`
+    )
+  }
+
+  getPopupContext(request) {
+    const mode = readCookie(request, this.config.cookies.mode)
+    const encodedOrigin = readCookie(request, this.config.cookies.origin)
+    let targetOrigin = "*"
+
+    if (encodedOrigin) {
+      try {
+        targetOrigin = new URL(decodeURIComponent(encodedOrigin)).origin
+      } catch {
+        targetOrigin = "*"
+      }
+    }
+
+    return {
+      enabled: mode === "popup",
+      targetOrigin,
+    }
+  }
+
+  createCleanupHeaders() {
+    const headers = new Headers()
+
+    this.expireCookie(headers, this.config.cookies.pkce)
+    this.expireCookie(headers, this.config.cookies.mode)
+    this.expireCookie(headers, this.config.cookies.origin)
+
+    if (this.config.cookies.state) {
+      this.expireCookie(headers, this.config.cookies.state)
+    }
+
+    return headers
+  }
+
+  createPopupErrorResponse(message, popupContext, status, headers = {}) {
+    return new PopupResponse({
+      type: "oauth-complete",
+      ok: false,
+      error: message,
+      targetOrigin: popupContext.targetOrigin,
+    }, {
+      headers,
+      status,
+      title: "Authentication failed",
+    })
   }
 
   async login(request) {
@@ -31,10 +92,17 @@ export class OAuthController {
     })
     const headers = new Headers(response.headers)
 
-    headers.set(
-      "Set-Cookie",
-      `${this.config.cookies.pkce}=${codeVerifier}; HttpOnly; Secure; SameSite=Lax; Path=/`
-    )
+    this.appendCookie(headers, this.config.cookies.pkce, codeVerifier)
+
+    if (url.searchParams.get("mode") === "popup") {
+      this.appendCookie(headers, this.config.cookies.mode, "popup")
+    }
+
+    const origin = url.searchParams.get("origin")
+
+    if (origin) {
+      this.appendCookie(headers, this.config.cookies.origin, encodeURIComponent(origin))
+    }
 
     if (this.config.requiresState) {
       const state = crypto.randomUUID()
@@ -42,10 +110,7 @@ export class OAuthController {
 
       location.searchParams.set("state", state)
       headers.set("Location", location.toString())
-      headers.append(
-        "Set-Cookie",
-        `${this.config.cookies.state}=${state}; HttpOnly; Secure; SameSite=Lax; Path=/`
-      )
+      this.appendCookie(headers, this.config.cookies.state, state)
     }
 
     return new RedirectResponse(headers)
@@ -54,8 +119,14 @@ export class OAuthController {
   async callback(request) {
     const url = new URL(request.url)
     const code = url.searchParams.get("code")
+    const popupContext = this.getPopupContext(request)
+    const cleanupHeaders = this.createCleanupHeaders()
 
     if (!code) {
+      if (popupContext.enabled) {
+        return this.createPopupErrorResponse("Missing code", popupContext, 400, cleanupHeaders)
+      }
+
       return new MissingCodeResponse()
     }
 
@@ -65,6 +136,10 @@ export class OAuthController {
       expectedState = readCookie(request, this.config.cookies.state)
 
       if (!expectedState) {
+        if (popupContext.enabled) {
+          return this.createPopupErrorResponse("Invalid state", popupContext, 400, cleanupHeaders)
+        }
+
         return new InvalidStateResponse()
       }
     }
@@ -83,6 +158,10 @@ export class OAuthController {
     })
 
     if (error) {
+      if (popupContext.enabled) {
+        return this.createPopupErrorResponse(await error.text(), popupContext, error.status, cleanupHeaders)
+      }
+
       return error
     }
 
@@ -94,12 +173,38 @@ export class OAuthController {
     })
 
     if (!profileResponse.ok) {
+      if (popupContext.enabled) {
+        return this.createPopupErrorResponse("Failed to fetch user profile", popupContext, 502, cleanupHeaders)
+      }
+
       return new FailedToFetchUserProfileResponse()
     }
 
-    return new JsonResponse({
+    const user = await profileResponse.json()
+    const payload = {
       provider: this.config.provider,
-      user: await profileResponse.json(),
-    })
+      accessToken: tokens.access_token,
+      tokenType: tokens.token_type || "Bearer",
+      scope: tokens.scope || this.config.scope,
+      expiresIn: Number.isFinite(tokens.expires_in) ? tokens.expires_in : null,
+      authenticatedAt: new Date().toISOString(),
+      user,
+    }
+
+    if (popupContext.enabled) {
+      return new PopupResponse({
+        type: "oauth-complete",
+        ok: true,
+        payload,
+        targetOrigin: popupContext.targetOrigin,
+      }, {
+        headers: cleanupHeaders,
+      })
+    }
+
+    return new JsonResponse({
+      provider: payload.provider,
+      user: payload.user,
+    }, 200, cleanupHeaders)
   }
 }
