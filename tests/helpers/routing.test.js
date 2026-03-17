@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { OAuthController } from "../../src/controllers/oauth-controller.js"
-import { VersionController } from "../../src/controllers/version-controller.js"
-import { getController, matchRoute } from "../../src/helpers/routing.js"
+import { matchRoute } from "../../src/helpers/routing.js"
 
 describe("routing helper", () => {
   it("matches static routes", () => {
@@ -35,14 +33,5 @@ describe("routing helper", () => {
     const match = matchRoute([{ method: "GET", path: "/version", action: "show" }], "/unknown", "GET")
 
     expect(match).toBeNull()
-  })
-
-  it("resolves known controllers", () => {
-    expect(getController("OAuthController")).toBe(OAuthController)
-    expect(getController("VersionController")).toBe(VersionController)
-  })
-
-  it("returns null for unknown controllers", () => {
-    expect(getController("MissingController")).toBeNull()
   })
 })

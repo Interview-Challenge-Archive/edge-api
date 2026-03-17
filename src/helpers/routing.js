@@ -1,14 +1,3 @@
-const controllerModules = import.meta.glob("../controllers/*.js", { eager: true })
-const controllers = Object.values(controllerModules).reduce((acc, module) => {
-  for (const [name, exportedValue] of Object.entries(module)) {
-    if (typeof exportedValue === "function") {
-      acc[name] = exportedValue
-    }
-  }
-
-  return acc
-}, {})
-
 export function matchRoute(routes, pathname, method) {
   const pathnameSegments = pathname.split("/")
 
@@ -46,8 +35,4 @@ export function matchRoute(routes, pathname, method) {
   }
 
   return null
-}
-
-export function getController(name) {
-  return controllers[name] || null
 }

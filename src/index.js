@@ -1,6 +1,6 @@
 import providerConfigs from "./config/providers.js"
 import routeConfigs from "./config/routes.js"
-import { getController, matchRoute } from "./helpers/routing.js"
+import { matchRoute } from "./helpers/routing.js"
 import { InternalServerErrorResponse } from "./responses/internal-server-error-response.js"
 import { NotFoundResponse } from "./responses/not-found-response.js"
 
@@ -17,7 +17,7 @@ export default {
       return new NotFoundResponse()
     }
 
-    const Controller = getController(match.route.controller)
+    const Controller = match.route.controller
 
     if (!Controller) {
       return new InternalServerErrorResponse()
