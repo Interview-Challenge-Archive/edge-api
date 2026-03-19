@@ -43,6 +43,29 @@ describe("index worker routing", () => {
     expect(await res.text()).toBe("1.0.0")
   })
 
+  it("returns OpenAPI spec generated from current route config", async () => {
+    const res = await worker.fetch(makeRequest("/openapi.json"), env)
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get("content-type")).toContain("application/json")
+    expect(body.openapi).toBe("3.1.0")
+    expect(body.paths["/login/{provider}"]).toBeDefined()
+    expect(body.paths["/callback/{provider}"]).toBeDefined()
+    expect(body.paths["/version"]).toBeDefined()
+    expect(body.paths["/openapi.json"]).toBeDefined()
+    expect(body.paths["/"]).toBeDefined()
+    expect(body.paths["/login/{provider}"].get.parameters[0]).toEqual({
+      in: "path",
+      name: "provider",
+      required: true,
+      schema: {
+        type: "string",
+        enum: ["github", "linkedin"],
+      },
+    })
+  })
+
   it("applies CORS middleware on login route for env-hosted origins", async () => {
     const res = await worker.fetch(
       makeRequest("/login/github", { headers: { Origin: "https://app.example.com" } }),

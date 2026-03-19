@@ -1,3 +1,4 @@
+import { OpenApiController } from "../controllers/openapi-controller.js"
 import { OAuthController } from "../controllers/oauth-controller.js"
 import { TeapotController } from "../controllers/teapot-controller.js"
 import { VersionController } from "../controllers/version-controller.js"
@@ -22,6 +23,13 @@ export default [
     path: "/version",
     controller: VersionController,
     action: "show",
+  },
+  {
+    method: "GET",
+    path: "/openapi.json",
+    controller: OpenApiController,
+    action: "show",
+    summary: "OpenAPI specification",
   },
   {
     method: "GET",

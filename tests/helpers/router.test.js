@@ -8,6 +8,12 @@ class HelloController {
   }
 }
 
+class ContextAwareController {
+  async show(_request, context) {
+    return new Response(context.route.path, { status: 200 })
+  }
+}
+
 describe("router helper", () => {
   it("applies route corsify to action responses", async () => {
     const corsify = vi.fn((response) => {
@@ -61,5 +67,23 @@ describe("router helper", () => {
 
     expect(response.headers.get("x-corsified")).toBeNull()
     expect(await response.text()).toBe("ok")
+  })
+
+  it("passes route context to controller actions", async () => {
+    const router = createRouter(
+      [
+        {
+          action: "show",
+          controller: ContextAwareController,
+          method: "GET",
+          path: "/openapi.json",
+        },
+      ],
+      {}
+    )
+
+    const response = await router.fetch(new Request("https://example.com/openapi.json"), {})
+
+    expect(await response.text()).toBe("/openapi.json")
   })
 })

@@ -8,14 +8,18 @@ async function runMiddlewares(route, context, action, controller) {
   const middlewares = [
     ...(route.middlewares ?? []),
     async (middlewareContext) => {
-      middlewareContext.response = await action.call(controller, middlewareContext.request)
+      middlewareContext.response = await action.call(
+        controller,
+        middlewareContext.request,
+        middlewareContext
+      )
     },
   ]
 
   await compose(middlewares)(context)
 }
 
-function createRouteHandler(route, providerConfigs) {
+function createRouteHandler(route, routeConfigs, providerConfigs) {
   return async (request, env) => {
     if (request.params.provider && !providerConfigs[request.params.provider]) {
       return new NotFoundResponse()
@@ -41,6 +45,8 @@ function createRouteHandler(route, providerConfigs) {
       request,
       response: null,
       route,
+      routeConfigs,
+      providerConfigs,
       state: {},
       url: new URL(request.url),
     }
@@ -63,7 +69,10 @@ export function createRouter(routeConfigs, providerConfigs) {
   const router = Router()
 
   for (const route of routeConfigs) {
-    router[route.method.toLowerCase()](route.path, createRouteHandler(route, providerConfigs))
+    router[route.method.toLowerCase()](
+      route.path,
+      createRouteHandler(route, routeConfigs, providerConfigs)
+    )
   }
 
   return router
