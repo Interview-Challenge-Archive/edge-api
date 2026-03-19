@@ -10,7 +10,7 @@ function makeRequest(origin) {
 describe("cors helper", () => {
   it("applies CORS headers for configured env origins", () => {
     const corsify = createCorsify({
-      ALLOWED_ORIGINS: "https://app.example.com, https://auth.example.org",
+      ALLOWED_ORIGINS: "https://app.example.com\nhttps://auth.example.org",
     })
 
     const response = corsify(new Response("ok"), makeRequest("https://auth.example.org"))
@@ -29,7 +29,7 @@ describe("cors helper", () => {
 
   it("does not apply CORS headers for disallowed origins", () => {
     const corsify = createCorsify({
-      ALLOWED_ORIGINS: "https://app.example.com, https://auth.example.org",
+      ALLOWED_ORIGINS: "https://app.example.com\nhttps://auth.example.org",
     })
     const response = corsify(new Response("ok"), makeRequest("https://malicious.example.net"))
 
