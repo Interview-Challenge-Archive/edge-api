@@ -29,7 +29,7 @@ function getHostname(value) {
 function getAllowedHostnames(env) {
   const allowedHostnames = new Set(LOCAL_HOSTNAMES)
   const envOrigins = (env.ALLOWED_ORIGINS ?? "")
-    .split(",")
+    .split(/\r?\n/)
     .map((value) => value.trim())
     .filter(Boolean)
 
