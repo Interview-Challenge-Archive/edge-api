@@ -14,6 +14,7 @@ import { RedirectResponse } from "../responses/oauth/redirect-response.js"
 
 export class OAuthController {
   constructor(env, config) {
+    this.env = env
     this.config = config
     this.clientId = env[config.env.clientId]
     this.clientSecret = env[config.env.clientSecret]
@@ -83,10 +84,13 @@ export class OAuthController {
     const url = new URL(request.url)
     const usesPkce = this.config.usePkce !== false
     const pkcePair = usesPkce ? await createPKCEPair() : null
+
+    let scope = url.searchParams.get("scope") ?? this.config.scope
+
     const response = createAuthorizationUrl(request, this.config.authorizationEndpoint, {
       client_id: this.clientId,
       redirect_uri: `${url.origin}${this.config.redirectPath}`,
-      scope: this.config.scope,
+      scope,
       ...(pkcePair ? {
         code_challenge: pkcePair.codeChallenge,
         code_challenge_method: "S256",

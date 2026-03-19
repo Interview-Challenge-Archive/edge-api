@@ -45,6 +45,9 @@ export default {
       mode: "linkedin_auth_mode",
       origin: "linkedin_auth_origin",
     },
+    profileHeaders: {
+      "User-Agent": "worker",
+    },
   },
 }
 

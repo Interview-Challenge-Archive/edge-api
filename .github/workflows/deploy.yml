@@ -55,11 +55,13 @@ jobs:
           GITHUB_CLIENT_SECRET: ${{ secrets.APP_GITHUB_CLIENT_SECRET }}
           LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
           LINKEDIN_CLIENT_SECRET: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+          ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
         run: |
           printf '%s' "$GITHUB_CLIENT_ID" | npx wrangler versions secret put GITHUB_CLIENT_ID
           printf '%s' "$GITHUB_CLIENT_SECRET" | npx wrangler versions secret put GITHUB_CLIENT_SECRET
           printf '%s' "$LINKEDIN_CLIENT_ID" | npx wrangler versions secret put LINKEDIN_CLIENT_ID
           printf '%s' "$LINKEDIN_CLIENT_SECRET" | npx wrangler versions secret put LINKEDIN_CLIENT_SECRET
+          printf '%s' "$ALLOWED_ORIGINS" | npx wrangler versions secret put ALLOWED_ORIGINS
 
       - name: Deploy Worker
         id: deploy

@@ -9,6 +9,7 @@ export default [
       sourceType: "module",
       globals: {
         ...globals.browser,
+        process: "readonly",
       },
     },
   },
