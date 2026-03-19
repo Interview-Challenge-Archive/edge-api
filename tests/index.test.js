@@ -7,7 +7,7 @@ const env = {
   GITHUB_CLIENT_SECRET: "gh-client-secret",
   LINKEDIN_CLIENT_ID: "li-client-id",
   LINKEDIN_CLIENT_SECRET: "li-client-secret",
-  ALLOWED_ORIGINS: "app.example.com,auth.example.org",
+  ALLOWED_ORIGINS: "https://app.example.com,https://auth.example.org",
 }
 
 function makeRequest(path, { method = "GET", headers = {} } = {}) {
