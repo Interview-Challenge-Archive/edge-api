@@ -33,6 +33,15 @@ describe("OAuthController github", () => {
     expect(location.searchParams.get("code_challenge_method")).toBe("S256")
   })
 
+  it("uses custom scope from query parameter for GitHub", async () => {
+    const controller = new OAuthController(env, providerConfigs.github)
+    const res = await controller.login(makeRequest("/login/github?scope=repo user"))
+
+    expect(res.status).toBe(302)
+    const location = new URL(res.headers.get("Location"))
+    expect(location.searchParams.get("scope")).toBe("repo user")
+  })
+
   it("stores popup mode and app origin cookies when popup login is requested", async () => {
     const controller = new OAuthController(env, providerConfigs.github)
     const res = await controller.login(
@@ -252,6 +261,15 @@ describe("OAuthController linkedin", () => {
     expect(setCookie).toContain("HttpOnly")
     expect(setCookie).toContain("Secure")
     expect(setCookie).toContain("SameSite=Lax")
+  })
+
+  it("uses custom scope from query parameter for LinkedIn", async () => {
+    const controller = new OAuthController(env, providerConfigs.linkedin)
+    const res = await controller.login(makeRequest("/login/linkedin?scope=openid profile"))
+
+    expect(res.status).toBe(302)
+    const location = new URL(res.headers.get("Location"))
+    expect(location.searchParams.get("scope")).toBe("openid profile")
   })
 
   it("generates a unique state on each request", async () => {
