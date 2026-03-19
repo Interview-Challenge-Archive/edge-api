@@ -99,20 +99,6 @@ export class OAuthController {
     })
     const headers = new Headers(response.headers)
 
-    // CORS support for login routes
-    const allowedOrigins = this.env.ALLOWED_ORIGINS
-    if (allowedOrigins) {
-      const origins = allowedOrigins.split(',').map(o => o.trim())
-      const requestOrigin = url.origin
-
-      if (origins.includes(requestOrigin)) {
-        headers.set("Access-Control-Allow-Origin", requestOrigin)
-        headers.set("Access-Control-Allow-Credentials", "true")
-        headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-      }
-    }
-
     if (pkcePair) {
       this.appendCookie(headers, this.config.cookies.pkce, pkcePair.codeVerifier)
     }

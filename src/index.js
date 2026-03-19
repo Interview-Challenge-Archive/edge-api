@@ -1,3 +1,5 @@
+import compose from "koa-compose"
+
 import providerConfigs from "./config/providers.js"
 import routeConfigs from "./config/routes.js"
 import { matchRoute } from "./helpers/routing.js"
@@ -26,6 +28,28 @@ export default {
     const config = match.params.provider ? providerConfigs[match.params.provider] : null
     const controller = new Controller(env, config)
 
-    return controller[match.route.action](request)
+    const context = {
+      env,
+      params: match.params,
+      request,
+      response: null,
+      route: match.route,
+      state: {},
+      url,
+    }
+    const middlewares = [
+      ...(match.route.middlewares ?? []),
+      async (middlewareContext) => {
+        middlewareContext.response = await controller[match.route.action](middlewareContext.request)
+      },
+    ]
+
+    await compose(middlewares)(context)
+
+    if (!context.response) {
+      return new InternalServerErrorResponse()
+    }
+
+    return context.response
   }
 }

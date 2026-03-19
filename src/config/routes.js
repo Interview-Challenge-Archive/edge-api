@@ -1,6 +1,7 @@
 import { OAuthController } from "../controllers/oauth-controller.js"
 import { TeapotController } from "../controllers/teapot-controller.js"
 import { VersionController } from "../controllers/version-controller.js"
+import { corsMiddleware } from "../middlewares/cors.js"
 
 export default [
   {
@@ -8,6 +9,7 @@ export default [
     path: "/login/:provider",
     controller: OAuthController,
     action: "login",
+    middlewares: [corsMiddleware],
   },
   {
     method: "GET",

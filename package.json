@@ -23,6 +23,7 @@
     "wrangler": "^4.74.0"
   },
   "dependencies": {
+    "koa-compose": "^4.1.0",
     "oauth4webapi": "^3.8.5"
   }
 }
