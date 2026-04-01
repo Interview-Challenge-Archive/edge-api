@@ -20,7 +20,7 @@
     "globals": "^17.4.0",
     "vite": "^8.0.0",
     "vitest": "^4.1.0",
-    "wrangler": "^4.74.0"
+    "wrangler": "^4.79.0"
   },
   "dependencies": {
     "itty-router": "^5.0.23",
