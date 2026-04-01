@@ -14,7 +14,7 @@
     "lint": "eslint src/"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.29.0",
+    "@cloudflare/vite-plugin": "^1.30.3",
     "@eslint/js": "^10.0.1",
     "eslint": "^10.0.3",
     "globals": "^17.4.0",
